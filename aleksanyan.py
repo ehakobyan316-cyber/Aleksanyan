@@ -1,4 +1,5 @@
 import asyncio
+import os
 import random
 import sqlite3
 from datetime import datetime
@@ -8,7 +9,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 # --- Настройки ---
-BOT_TOKEN = "8834525096:AAG4H_lDDOzvh6xB9z23TLdXxetU8bnpjME"   # вставьте токен сюда
+BOT_TOKEN = os.environ["BOT_TOKEN"]
 DB_PATH = "slots1.db"
 
 oids = [7774684451, 5737457078, 8592719105, -1002042384420, -1004343468249, -1003644333508, 2042384420, 3644333508, 4343468249]
