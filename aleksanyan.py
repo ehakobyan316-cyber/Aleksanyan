@@ -234,6 +234,9 @@ async def web_server():
 # --- Запуск ---
 async def main():
     try:
+        # Մաքրում է հին կապերը Telegram-ում՝ կոնֆլիկտը բացառելու համար
+        await bot.delete_webhook(drop_pending_updates=True)
+        
         await asyncio.gather(
             web_server(),
             dp.start_polling(bot)
@@ -243,3 +246,6 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+
+
