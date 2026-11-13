@@ -10,7 +10,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
 
 # --- Настройки ---
-BOT_TOKEN = "9034337424:AAHPphDqoIziR9k8HdrMwD-fWyohmRQi3Ek"   # вставьте токен сюда
+BOT_TOKEN = "9009541610:AAHsqQTT1moGWyAxFxZzlVBwL4H-cTpTyV0"   # вставьте токен сюда
 DB_PATH = "slots1.db"
 
 oids = [7774684451, 5737457078, 8592719105, -1002042384420, -1004343468249, -1003644333508, 2042384420, 3644333508, 4343468249]
