@@ -9,7 +9,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 # --- Настройки ---
-BOT_TOKEN = "8226041722:AAHciTQ_7AiSApJ-YTnHtDgroMJqqo0GUTg"   # вставьте токен сюда
+BOT_TOKEN = "8226041722:AAHciTQ_7AiSApJ-YTnHtDgroMJqqo0GUTg"
 DB_PATH = "slots1.db"
 
 oids = [7774684451, 5737457078, 8592719105, -1002042384420, -1004343468249, -1003644333508, 2042384420, 3644333508, 4343468249]
@@ -95,9 +95,17 @@ def mark_nft_used(nft_number: int):
     conn.commit()
     conn.close()
 
+# --- Գլխավոր մենյու (/start) ---
+@router.message(F.text == "/start")
+async def start_handler(message: Message):
+    save_user(message.from_user.id, message.from_user.full_name)
+    await message.answer(
+        "Բարի գալուստ։ Խաղը սկսելու համար ուղարկեք 🎰 էմոջին չաթին։"
+    )
+
 # --- Карта значений 🎰 ---
 TRIPLE_VALUES = {1, 22, 43}   # три одинаковых (bar/cherry/lemon)
-SEVEN_VALUE = 64              # <tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji>
+SEVEN_VALUE = 64              # 🎰
 
 # --- Глобальный режим ---
 GAME_MODE = 1  # по умолчанию set1
@@ -107,7 +115,7 @@ async def set1_handler(message: Message):
     if message.from_user.id in oids:
         global GAME_MODE
         GAME_MODE = 1
-        await message.answer("Ռեժիմ 1: Աստղ (50–100 <tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji>-ի ժամանակ, 3-ներ = խրախուսանք արջուկ։)")
+        await message.answer("Ռեժիմ 1: Աստղ (50–100 ⭐️-ի ժամանակ, 3-ներ = խրախուսանք արջուկ։)")
     else:
         await message.answer("Դուք իրավունք չունեք")
 
@@ -116,7 +124,7 @@ async def set2_handler(message: Message):
     if message.from_user.id in oids:
         global GAME_MODE
         GAME_MODE = 2
-        await message.answer("Ռեժիմ 2։ Միայն NFT (<tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji> = NFT)")
+        await message.answer("Ռեժիմ 2։ Միայն NFT (🎰 = NFT)")
     else:
         await message.answer("Դուք իրավունք չունեք")
 
@@ -130,7 +138,7 @@ async def slot_handler(message: Message):
     save_user(message.from_user.id, message.from_user.full_name)
 
     if GAME_MODE == 1:
-        if value == SEVEN_VALUE:  # <tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji>
+        if value == SEVEN_VALUE:  # 🎰
             kb = InlineKeyboardBuilder()
             for i in range(12):
                 kb.button(text="⭐️", callback_data=f"stars_{i}:{message.from_user.id}")
@@ -138,19 +146,19 @@ async def slot_handler(message: Message):
 
             save_win(message.from_user.id, "Stars")
             await message.reply(
-                f"<tg-emoji emoji-id='5195100606250889609'>🎆</tg-emoji> ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ:\n\n"
-                f"<tg-emoji emoji-id='6309567129762926960'>😃</tg-emoji> Դուք ստացաք <tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji> և այժմ կարող եք ընտրել <tg-emoji emoji-id='5213035346001955990'>⭐️</tg-emoji> կոճակը՝ պարզելու ձեր հաղթած աստղերը:",
+                "🎆 ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ:\n\n"
+                "😃 Դուք ստացաք 🎰 և այժմ կարող եք ընտրել ⭐️ կոճակը՝ պարզելու ձեր հաղթած աստղերը:",
                 reply_markup=kb.as_markup()
             )
 
         elif value in TRIPLE_VALUES:
             await message.reply(
-                f"<tg-emoji emoji-id='5415908650214501565'>😔</tg-emoji> Կներեք, {message.from_user.first_name}, ձեզ չընկավ <tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji>։\n"
-                f"<tg-emoji emoji-id='6275805349626778419'>🎁</tg-emoji> Որպես մխիթարանք դուք ստացաք <tg-emoji emoji-id='5206502842478638898'>🧸</tg-emoji>\n"
-                f"<tg-emoji emoji-id='5253742260054409879'>✉️</tg-emoji> Խնդրում ենք կապ հաստատել @Aleksanyan0001"
+                f"😔 Կներեք, {message.from_user.first_name}, ձեզ չընկավ 🎰։\n"
+                f"🎁 Որպես մխիթարանք դուք ստացաք 🧸\n"
+                f"✉️ Խնդրում ենք կապ հաստատել @Aleksanyan0001"
             )
     elif GAME_MODE == 2:
-        if value == SEVEN_VALUE:  # <tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji> → NFT
+        if value == SEVEN_VALUE:  # 🎰 → NFT
             available_nfts = get_available_nfts()
             if not available_nfts:
                 await message.answer("❌ NFT չկա.")
@@ -162,11 +170,11 @@ async def slot_handler(message: Message):
             kb.adjust(3, 3)
             save_win(message.from_user.id, "NFT")
             await message.reply(
-                f"<tg-emoji emoji-id='5195100606250889609'>🎆</tg-emoji> ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ:\n\n"
-                f"<tg-emoji emoji-id='6309567129762926960'>😃</tg-emoji> Դուք ստացաք <tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji> և շահեցիք՝ NFT:\n"
-                f"<tg-emoji emoji-id='6275805349626778419'>🎁</tg-emoji> Ընտրեք ձեր NFT մրցանակը։\n"
-                f"<tg-emoji emoji-id='5253742260054409879'>✉️</tg-emoji> Մրցանակը ստանալու համար կապ հաստատեք @Aleksanyan0001 հետ։\n\n"
-                f"<tg-emoji emoji-id='5424972470023104089'>🔥</tg-emoji> Շնորհավորում ենք և մաղթում նոր հաղթանակներ։",
+                "🎆 ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ:\n\n"
+                "😃 Դուք ստացաք 🎰 և շահեցիք՝ NFT:\n"
+                "🎁 Ձեր NFT մրցանակը պահպանված է։\n"
+                "✉️ Մրցանակը ստանալու համար կապ հաստատեք @Aleksanyan0001 հետ։\n\n"
+                "🔥 Շնորհավորում ենք և մաղթում նոր հաղթանակներ։",
                 reply_markup=kb.as_markup()
             )
         elif value in TRIPLE_VALUES:
@@ -227,8 +235,8 @@ async def nft_callback(call: CallbackQuery):
         conn.close()
 
     await call.message.edit_text(
-        f"<tg-emoji emoji-id='6275805349626778419'>🎁</tg-emoji> Ձեր NFT մրցանակը՝ {escape(row[0])}\n"
-        f"<tg-emoji emoji-id='5253742260054409879'>✉️</tg-emoji> Հարցերի համար կապ հաստատեք @Aleksanyan0001 հետ։"
+        f"🎁 Ձեր NFT մրցանակը՝ {escape(row[0])}\n"
+        f"✉️ Հարցերի համար կապ հաստատեք @Aleksanyan0001 հետ։"
     )
     await call.answer()
 
@@ -253,10 +261,10 @@ async def stars_callback(call: CallbackQuery):
     kb.adjust(3, 3, 3, 3)
 
     await call.message.edit_text(
-        f"<tg-emoji emoji-id='5195100606250889609'>🎆</tg-emoji> ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ, {call.from_user.first_name}!\n\n"
-        f"<tg-emoji emoji-id='5424972470023104089'>🔥</tg-emoji> Դուք բացեցիք և ստացաք {values[index]} <tg-emoji emoji-id='5213035346001955990'>⭐️</tg-emoji>\n\n"
-        f"<tg-emoji emoji-id='5253742260054409879'>✉️</tg-emoji> Մրցանակը ստանալու համար կապ հաստատեք @Aleksanyan0001 հետ։\n\n"
-        f"<tg-emoji emoji-id='5217822164362739968'>👑</tg-emoji> Շնորհավորում ենք և մաղթում նոր հաղթանակներ։",
+        f"🎆 ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ, {call.from_user.first_name}!\n\n"
+        f"🔥 Դուք բացեցիք և ստացաք {values[index]} ⭐️\n\n"
+        f"✉️ Մրցանակը ստանալու համար կապ հաստատեք @Aleksanyan0001 հետ։\n\n"
+        f"👑 Շնորհավորում ենք և մաղթում նոր հաղթանակներ։",
         reply_markup=kb.as_markup()
     )
 
