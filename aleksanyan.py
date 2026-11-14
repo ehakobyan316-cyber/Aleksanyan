@@ -1,116 +1,21 @@
 import asyncio
 from html import escape
-import logging
-import os
 import random
 import sqlite3
 from datetime import datetime
-from typing import TYPE_CHECKING
-
-try:
-    from aiogram import Bot, Dispatcher, F, Router
-    from aiogram.types import Message, CallbackQuery  # type: ignore[reportMissingImports]
-except ImportError:  # Compatibility with environments missing aiogram type stubs
-    class F:  # pragma: no cover
-        text = None
-        dice = None
-        data = None
-
-    class Bot:  # pragma: no cover
-        def __init__(self, *args, **kwargs):
-            pass
-
-    class Dispatcher:  # pragma: no cover
-        def include_router(self, *args, **kwargs):
-            return None
-
-        async def start_polling(self, *args, **kwargs):
-            raise RuntimeError("aiogram is required to run this bot")
-
-    class Router:  # pragma: no cover
-        def message(self, *args, **kwargs):
-            def decorator(func):
-                return func
-            return decorator
-
-    class Message:  # pragma: no cover
-        pass
-
-    class CallbackQuery:  # pragma: no cover
-        pass
-
-try:
-    from aiogram.client.default import DefaultBotProperties  # type: ignore[reportMissingImports]
-except ImportError:  # Compatibility with older aiogram versions
-    class DefaultBotProperties:  # pragma: no cover
-        def __init__(self, **kwargs):
-            self.kwargs = kwargs
-
-try:
-    from aiogram.utils.keyboard import InlineKeyboardBuilder  # type: ignore[reportMissingImports]
-except ImportError:  # Compatibility with older aiogram versions
-    if TYPE_CHECKING:
-        from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup  # type: ignore[reportMissingImports]
-    else:
-        try:
-            from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup  # type: ignore[reportMissingImports]
-        except ImportError:
-            class InlineKeyboardButton:  # pragma: no cover
-                def __init__(self, *args, **kwargs):
-                    pass
-
-            class InlineKeyboardMarkup:  # pragma: no cover
-                def __init__(self, *args, **kwargs):
-                    pass
-
-                def row(self, *args, **kwargs):
-                    return self
-
-    class InlineKeyboardBuilder:
-        def __init__(self):
-            self._buttons = []
-            self._row_sizes = []
-
-        def button(self, text: str, callback_data: str | None = None):
-            self._buttons.append((text, callback_data))
-            return self
-
-        def adjust(self, *sizes):
-            self._row_sizes = sizes
-            return self
-
-        def as_markup(self):
-            row_size = max(self._row_sizes) if self._row_sizes else 1
-            markup = InlineKeyboardMarkup(row_width=row_size)
-            current_row = []
-
-            for text, callback_data in self._buttons:
-                current_row.append(
-                    InlineKeyboardButton(text=text, callback_data=callback_data)
-                )
-                if len(current_row) >= row_size:
-                    markup.row(*current_row)
-                    current_row = []
-
-            if current_row:
-                markup.row(*current_row)
-
-            return markup
-
-from aiohttp import web
+from aiogram import Bot, Dispatcher, F, Router
+from aiogram.types import Message, CallbackQuery
+from aiogram.client.default import DefaultBotProperties
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 # --- Настройки ---
-logging.basicConfig(level=logging.INFO)
-BOT_TOKEN = "8226041722:AAHciTQ_7AiSApJ-YTnHtDgroMJqqo0GUTg"
+BOT_TOKEN = "8226041722:AAHciTQ_7AiSApJ-YTnHtDgroMJqqo0GUTg"   # вставьте токен сюда
 DB_PATH = "slots1.db"
-
-import shopstars
 
 oids = [7774684451, 5737457078, 8592719105, -1002042384420, -1004343468249, -1003644333508, 2042384420, 3644333508, 4343468249]
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 dp = Dispatcher()
-dp.include_router(shopstars.router)
 router = Router()
 dp.include_router(router)
 
@@ -192,31 +97,17 @@ def mark_nft_used(nft_number: int):
 
 # --- Карта значений 🎰 ---
 TRIPLE_VALUES = {1, 22, 43}   # три одинаковых (bar/cherry/lemon)
-SEVEN_VALUE = 64              # 🎰
+SEVEN_VALUE = 64              # <tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji>
 
 # --- Глобальный режим ---
 GAME_MODE = 1  # по умолчанию set1
-
-@router.message(F.text == "/start")
-async def start_handler(message: Message):
-    save_user(message.from_user.id, message.from_user.full_name)
-    await message.answer(
-        "Բարի գալուստ։ Խաղը սկսելու համար ուղարկեք 🎰 emoji-ն։"
-    )
-
-@router.callback_query(F.data == "play_slots")
-async def play_slots_handler(callback: CallbackQuery):
-    await callback.message.answer(
-        "🎰 Խաղալու համար ուղարկեք 🎰 emoji-ն։"
-    )
-    await callback.answer()
 
 @router.message(F.text == "/set1")
 async def set1_handler(message: Message):
     if message.from_user.id in oids:
         global GAME_MODE
         GAME_MODE = 1
-        await message.answer("Ռեժիմ 1: Աստղ (50–100 ⭐️-ի ժամանակ, 3-ներ = խրախուսանք արջուկ։)")
+        await message.answer("Ռեժիմ 1: Աստղ (50–100 <tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji>-ի ժամանակ, 3-ներ = խրախուսանք արջուկ։)")
     else:
         await message.answer("Դուք իրավունք չունեք")
 
@@ -225,7 +116,7 @@ async def set2_handler(message: Message):
     if message.from_user.id in oids:
         global GAME_MODE
         GAME_MODE = 2
-        await message.answer("Ռեժիմ 2։ Միայն NFT (🎰 = NFT)")
+        await message.answer("Ռեժիմ 2։ Միայն NFT (<tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji> = NFT)")
     else:
         await message.answer("Դուք իրավունք չունեք")
 
@@ -239,7 +130,7 @@ async def slot_handler(message: Message):
     save_user(message.from_user.id, message.from_user.full_name)
 
     if GAME_MODE == 1:
-        if value == SEVEN_VALUE:  # 🎰
+        if value == SEVEN_VALUE:  # <tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji>
             kb = InlineKeyboardBuilder()
             for i in range(12):
                 kb.button(text="⭐️", callback_data=f"stars_{i}:{message.from_user.id}")
@@ -247,35 +138,35 @@ async def slot_handler(message: Message):
 
             save_win(message.from_user.id, "Stars")
             await message.reply(
-                "🎆 ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ:\n\n"
-                "😃 Դուք ստացաք 🎰 և այժմ կարող եք ընտրել ⭐️ կոճակը՝ պարզելու ձեր հաղթած աստղերը:",
+                f"<tg-emoji emoji-id='5195100606250889609'>🎆</tg-emoji> ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ:\n\n"
+                f"<tg-emoji emoji-id='6309567129762926960'>😃</tg-emoji> Դուք ստացաք <tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji> և այժմ կարող եք ընտրել <tg-emoji emoji-id='5213035346001955990'>⭐️</tg-emoji> կոճակը՝ պարզելու ձեր հաղթած աստղերը:",
                 reply_markup=kb.as_markup()
             )
 
         elif value in TRIPLE_VALUES:
             await message.reply(
-                f"😔 Կներեք, {message.from_user.first_name}, ձեզ չընկավ 🎰։\n"
-                f"🎁 Որպես մխիթարանք դուք ստացաք 🧸\n"
-                f"✉️ Խնդրում ենք կապ հաստատել @Aleksanyan0001"
+                f"<tg-emoji emoji-id='5415908650214501565'>😔</tg-emoji> Կներեք, {message.from_user.first_name}, ձեզ չընկավ <tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji>։\n"
+                f"<tg-emoji emoji-id='6275805349626778419'>🎁</tg-emoji> Որպես մխիթարանք դուք ստացաք <tg-emoji emoji-id='5206502842478638898'>🧸</tg-emoji>\n"
+                f"<tg-emoji emoji-id='5253742260054409879'>✉️</tg-emoji> Խնդրում ենք կապ հաստատել @Aleksanyan0001"
             )
     elif GAME_MODE == 2:
-        if value == SEVEN_VALUE:  # 🎰 → NFT
+        if value == SEVEN_VALUE:  # <tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji> → NFT
             available_nfts = get_available_nfts()
             if not available_nfts:
                 await message.answer("❌ NFT չկա.")
                 return
 
             kb = InlineKeyboardBuilder()
-            for nft_number, _ in available_nfts[:6]:
+            for nft_number, nft in available_nfts[:6]:
                 kb.button(text="NFT", callback_data=f"nft_{nft_number}:{message.from_user.id}")
             kb.adjust(3, 3)
             save_win(message.from_user.id, "NFT")
             await message.reply(
-                "🎆 ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ:\n\n"
-                "😃 Դուք ստացաք 🎰 և շահեցիք՝ NFT:\n"
-                "🎁 Ընտրեք ձեր NFT մրցանակը։\n"
-                "✉️ Մրցանակը ստանալու համար կապ հաստատեք @Aleksanyan0001 հետ։\n\n"
-                "🔥 Շնորհավորում ենք և մաղթում նոր հաղթանակներ։",
+                f"<tg-emoji emoji-id='5195100606250889609'>🎆</tg-emoji> ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ:\n\n"
+                f"<tg-emoji emoji-id='6309567129762926960'>😃</tg-emoji> Դուք ստացաք <tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji><tg-emoji emoji-id='5305559532947126301'>🔠</tg-emoji> և շահեցիք՝ NFT:\n"
+                f"<tg-emoji emoji-id='6275805349626778419'>🎁</tg-emoji> Ընտրեք ձեր NFT մրցանակը։\n"
+                f"<tg-emoji emoji-id='5253742260054409879'>✉️</tg-emoji> Մրցանակը ստանալու համար կապ հաստատեք @Aleksanyan0001 հետ։\n\n"
+                f"<tg-emoji emoji-id='5424972470023104089'>🔥</tg-emoji> Շնորհավորում ենք և մաղթում նոր հաղթանակներ։",
                 reply_markup=kb.as_markup()
             )
         elif value in TRIPLE_VALUES:
@@ -336,8 +227,8 @@ async def nft_callback(call: CallbackQuery):
         conn.close()
 
     await call.message.edit_text(
-        f"🎁 Ձեր NFT մրցանակը՝ {escape(row[0])}\n"
-        "✉️ Հարցերի համար կապ հաստատեք @Aleksanyan0001 հետ։"
+        f"<tg-emoji emoji-id='6275805349626778419'>🎁</tg-emoji> Ձեր NFT մրցանակը՝ {escape(row[0])}\n"
+        f"<tg-emoji emoji-id='5253742260054409879'>✉️</tg-emoji> Հարցերի համար կապ հաստատեք @Aleksanyan0001 հետ։"
     )
     await call.answer()
 
@@ -362,36 +253,19 @@ async def stars_callback(call: CallbackQuery):
     kb.adjust(3, 3, 3, 3)
 
     await call.message.edit_text(
-        f"🎆 ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ, {call.from_user.first_name}!\n\n"
-        f"🔥 Դուք բացեցիք և ստացաք {values[index]} ⭐️\n\n"
-        f"✉️ Մրցանակը ստանալու համար կապ հաստատեք @Aleksanyan0001 հետ։\n\n"
-        f"👑 Շնորհավորում ենք և մաղթում նոր հաղթանակներ։",
+        f"<tg-emoji emoji-id='5195100606250889609'>🎆</tg-emoji> ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ, {call.from_user.first_name}!\n\n"
+        f"<tg-emoji emoji-id='5424972470023104089'>🔥</tg-emoji> Դուք բացեցիք և ստացաք {values[index]} <tg-emoji emoji-id='5213035346001955990'>⭐️</tg-emoji>\n\n"
+        f"<tg-emoji emoji-id='5253742260054409879'>✉️</tg-emoji> Մրցանակը ստանալու համար կապ հաստատեք @Aleksanyan0001 հետ։\n\n"
+        f"<tg-emoji emoji-id='5217822164362739968'>👑</tg-emoji> Շնորհավորում ենք և մաղթում նոր հաղթանակներ։",
         reply_markup=kb.as_markup()
     )
 
-# --- HTTP Сервер для Render ---
-async def handle(request):
-    return web.Response(text="Bot is running!")
-
-async def web_server():
-    app = web.Application()
-    app.router.add_get("/", handle)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    
-    port = int(os.environ.get("PORT", 8080))
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
-    print(f"Web server started on port {port}")
-
 # --- Запуск ---
 async def main():
-    await shopstars.init_db()
-    await shopstars.add_all_services()
-    await asyncio.gather(
-        web_server(),
-        dp.start_polling(bot)
-    )
+    try:
+        await dp.start_polling(bot)
+    except Exception as e:
+        print(f"[ERROR] {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())
