@@ -10,56 +10,56 @@ from typing import TYPE_CHECKING
 try:
     from aiogram import Bot, Dispatcher, F, Router  # type: ignore[reportMissingImports]
     from aiogram.types import Message, CallbackQuery  # type: ignore[reportMissingImports]
-except ImportError:  # Compatibility with environments missing aiogram type stubs
-    class F:  # pragma: no cover
+except ImportError:
+    class F:
         text = None
         dice = None
         data = None
 
-    class Bot:  # pragma: no cover
+    class Bot:
         def __init__(self, *args, **kwargs):
             pass
 
-    class Dispatcher:  # pragma: no cover
+    class Dispatcher:
         def include_router(self, *args, **kwargs):
             return None
 
         async def start_polling(self, *args, **kwargs):
             raise RuntimeError("aiogram is required to run this bot")
 
-    class Router:  # pragma: no cover
+    class Router:
         def message(self, *args, **kwargs):
             def decorator(func):
                 return func
             return decorator
 
-    class Message:  # pragma: no cover
+    class Message:
         pass
 
-    class CallbackQuery:  # pragma: no cover
+    class CallbackQuery:
         pass
 
 try:
     from aiogram.client.default import DefaultBotProperties  # type: ignore[reportMissingImports]
-except ImportError:  # Compatibility with older aiogram versions
-    class DefaultBotProperties:  # pragma: no cover
+except ImportError:
+    class DefaultBotProperties:
         def __init__(self, **kwargs):
             self.kwargs = kwargs
 
 try:
     from aiogram.utils.keyboard import InlineKeyboardBuilder  # type: ignore[reportMissingImports]
-except ImportError:  # Compatibility with older aiogram versions
+except ImportError:
     if TYPE_CHECKING:
-        from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup  # type: ignore[reportMissingImports]
+        from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
     else:
         try:
-            from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup  # type: ignore[reportMissingImports]
+            from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
         except ImportError:
-            class InlineKeyboardButton:  # pragma: no cover
+            class InlineKeyboardButton:
                 def __init__(self, *args, **kwargs):
                     pass
 
-            class InlineKeyboardMarkup:  # pragma: no cover
+            class InlineKeyboardMarkup:
                 def __init__(self, *args, **kwargs):
                     pass
 
@@ -98,22 +98,17 @@ except ImportError:  # Compatibility with older aiogram versions
             return markup
 
 from aiohttp import web
+import shopstars
 
 # --- ՆԱՇՏԿՈՒՄՆԵՐ (Settings) ---
 logging.basicConfig(level=logging.INFO)
-BOT_TOKEN = "8226041722:AAHciTQ_7AiSApJ-YTnHtDgroMJqqo0GUTg"
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "8226041722:AAHciTQ_7AiSApJ-YTnHtDgroMJqqo0GUTg")
 DB_PATH = "slots1.db"
 PREMIUM_STAR_EMOJI_ID = "5951810621887484519"
 
-import shopstars
-
 oids = [7774684451, 5737457078, 8592719105, -1002042384420, -1004343468249, -1003644333508, 2042384420, 3644333508, 4343468249]
 
-bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
-dp = Dispatcher()
-dp.include_router(shopstars.router)
-router = Router()
-dp.include_router(router)
+router = Router(name="slots_router")
 
 # --- ԲԱԶԱ (Database) ---
 def init_db():
@@ -191,7 +186,6 @@ def mark_nft_used(nft_number: int):
     conn.commit()
     conn.close()
 
-
 # --- ԽԱՂԻ ՔԱՐՏԵԶ 🎰 ---
 TRIPLE_VALUES = {1, 22, 43}   # три одинаковых (bar/cherry/lemon)
 SEVEN_VALUE = 64              # 🎰
@@ -205,6 +199,7 @@ async def play_slots_handler(callback: CallbackQuery):
         "🎰 Խաղալու համար ուղարկեք 🎰 emoji-ն։"
     )
     await callback.answer()
+
 @router.message(F.text == "/set1")
 async def set1_handler(message: Message):
     if message.from_user.id in oids:
@@ -237,159 +232,3 @@ async def slot_handler(message: Message):
             kb = InlineKeyboardBuilder()
             for i in range(12):
                 kb.button(text="⭐️", callback_data=f"stars_{i}:{message.from_user.id}")
-            kb.adjust(3, 3, 3, 3)
-
-            save_win(message.from_user.id, "Stars")
-            await message.reply(
-                "🎆 ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ:\n\n"
-                "😃 Դուք ստացաք 🎰 և այժմ կարող եք ընտրել "
-                f"<tg-emoji emoji-id=\"{PREMIUM_STAR_EMOJI_ID}\">⭐️</tg-emoji> "
-                "կոճակը՝ պարզելու ձեր հաղթած աստղերը:",
-                reply_markup=kb.as_markup(),
-                parse_mode="HTML",
-            )
-
-        elif value in TRIPLE_VALUES:
-            await message.reply(
-                f"😔 Կներեք, {message.from_user.first_name}, ձեզ չընկավ 🎰։\n"
-                "🎁 Որպես մխիթարանք դուք ստացաք 🧸\n"
-                f"✉️ Խնդրում ենք կապ հաստատել @Aleksanyan0001"
-            )
-    elif GAME_MODE == 2:
-        if value == SEVEN_VALUE:  # 🎰 → NFT
-            available_nfts = get_available_nfts()
-            if not available_nfts:
-                await message.answer("❌ NFT չկա.")
-                return
-
-            kb = InlineKeyboardBuilder()
-            for nft_number, _ in available_nfts[:6]:
-                kb.button(text="NFT", callback_data=f"nft_{nft_number}:{message.from_user.id}")
-            kb.adjust(3, 3)
-            save_win(message.from_user.id, "NFT")
-            await message.reply(
-                "🎆 ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ:\n\n"
-                "😃 Դուք ստացաք 🎰 և շահեցիք՝ NFT:\n"
-                "🎁 Ընտրեք ձեր NFT մրցանակը։\n"
-                "✉️ Մրցանակը ստանալու համար կապ հաստատեք @Aleksanyan0001 հետ։\n\n"
-                "🔥 Շնորհավորում ենք և մաղթում նոր հաղթանակներ։",
-                reply_markup=kb.as_markup()
-            )
-        elif value in TRIPLE_VALUES:
-            return
-
-@router.message(F.text.startswith("/add"))
-async def add_nft_handler(message: Message):
-    if message.from_user.id not in oids:
-        await message.answer("Դուք իրավունք չունեք")
-        return
-
-    try:
-        parts = message.text.split(" ", 2)
-        if len(parts) < 3:
-            await message.answer("Օրինակը` /add <nft_number> <nft>")
-            return
-
-        nft_number = int(parts[1])
-        nft_value = parts[2].strip()
-
-        save_nft(nft_number, nft_value)
-        await message.answer(f"NFT փոխվեց` #{nft_number} — {nft_value}")
-    except Exception as e:
-        await message.answer(f"⚠️ Խնդիր` {e}")
-
-@router.callback_query(F.data.startswith("nft_"))
-async def nft_callback(call: CallbackQuery):
-    try:
-        nft_data, winner_id = call.data.split(":")
-        nft_number = int(nft_data.removeprefix("nft_"))
-    except (AttributeError, ValueError):
-        await call.answer("❗ Սխալ ընտրություն։", show_alert=True)
-        return
-
-    if str(call.from_user.id) != winner_id:
-        await call.answer("⛔ Միայն հաղթողը!", show_alert=True)
-        return
-
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        conn.execute("BEGIN IMMEDIATE")
-        cursor = conn.execute(
-            "SELECT nft FROM NFT_LIST WHERE nft_number = ? AND used = 0",
-            (nft_number,)
-        )
-        row = cursor.fetchone()
-        if row is None:
-            conn.rollback()
-            await call.answer("❗ Այս NFT-ն այլևս հասանելի չէ։", show_alert=True)
-            return
-
-        conn.execute(
-            "UPDATE NFT_LIST SET used = 1 WHERE nft_number = ? AND used = 0",
-            (nft_number,)
-        )
-        conn.commit()
-    finally:
-        conn.close()
-
-    await call.message.edit_text(
-        f"🎁 Ձեր NFT մրցանակը՝ {escape(row[0])}\n"
-        "✉️ Հարցերի համար կապ հաստատեք @Aleksanyan0001 հետ։"
-    )
-    await call.answer()
-
-@router.callback_query(F.data.startswith("stars_"))
-async def stars_callback(call: CallbackQuery):
-    data, winner_id = call.data.split(":")
-    if str(call.from_user.id) != winner_id:
-        await call.answer("⛔ Միայն հաղթողը!", show_alert=True)
-        return
-
-    index = int(data.split("_")[1])
-
-    values = [generate_win() for _ in range(12)]
-
-    kb = InlineKeyboardBuilder()
-    for i, val in enumerate(values):
-        if i == index:
-            kb.button(text=f"✅ {val}", callback_data="disabled")
-        else:
-            kb.button(text=str(val), callback_data="disabled")
-    kb.adjust(3, 3, 3, 3)
-
-    await call.message.edit_text(
-        f"🎆 ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ, {call.from_user.first_name}!\n\n"
-        f"🔥 Դուք բացեցիք և ստացաք {values[index]} "
-        f"<tg-emoji emoji-id=\"{PREMIUM_STAR_EMOJI_ID}\">⭐️</tg-emoji>\n\n"
-        f"✉️ Մրցանակը ստանալու համար կապ հաստատեք @Aleksanyan0001 հետ։\n\n"
-        f"👑 Շնորհավորում ենք և մաղթում նոր հաղթանակներ։",
-        reply_markup=kb.as_markup(),
-        parse_mode="HTML",
-    )
-
-# --- HTTP Server for Render ---
-async def handle(request):
-    return web.Response(text="Bot is running!")
-
-async def web_server():
-    app = web.Application()
-    app.router.add_get("/", handle)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    
-    port = int(os.environ.get("PORT", 8080))
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
-    print(f"Web server started on port {port}")
-
-# --- ԳՈՐԾԱՐԿՈՒՄ (Main) ---
-async def main():
-    await shopstars.init_db()
-    await shopstars.add_all_services()
-    await asyncio.gather(
-        web_server(),
-        dp.start_polling(bot)
-    )
-
-if __name__ == "__main__":
-    asyncio.run(main())
