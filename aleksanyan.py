@@ -101,7 +101,7 @@ from aiohttp import web
 
 # --- ՆԱՇՏԿՈՒՄՆԵՐ (Settings) ---
 logging.basicConfig(level=logging.INFO)
-BOT_TOKEN = "8226041722:AAHciTQ_7AiSApJ-YTnHtDgroMJqqo0GUTg"
+BOT_TOKEN = "9025378348:AAF8wJAgutvPfVQcEKttGq6QrymAKwtdi7Q"
 DB_PATH = "slots1.db"
 
 # Premium Telegram emoji IDs
