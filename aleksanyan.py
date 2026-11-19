@@ -246,6 +246,9 @@ async def set2_handler(message: Message):
 # --- 🎰 ՄՇԱԿՈՒՄ (Slot Handler) ---
 @router.message(F.dice)
 async def slot_handler(message: Message):
+    if message.chat.type not in {"group", "supergroup"}:
+        return
+
     if message.dice.emoji != "🎰":
         return
 
@@ -258,46 +261,16 @@ async def slot_handler(message: Message):
                 build_777_announcement(message.from_user.full_name, "stars"),
                 parse_mode=BOT_API_PARSE_MODE,
             )
-
-            kb = InlineKeyboardBuilder()
-            for i in range(12):
-                kb.button(text="⭐️", callback_data=f"stars_{i}:{message.from_user.id}", icon_custom_emoji_id=PREMIUM_EMOJI_IDS[i % len(PREMIUM_EMOJI_IDS)])
-            kb.adjust(3, 3, 3, 3)
-
             save_win(message.from_user.id, "Stars")
-            await message.reply(
-                "🎆 ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ:\n\n"
-                "😃 Դուք ստացաք 🎰 և այժմ կարող եք ընտրել "
-                '<tg-emoji emoji-id="5951810621887484519">⭐️</tg-emoji> '
-                "կոճակը՝ պարզելու ձեր հաղթած աստղերը:",
-                reply_markup=kb.as_markup()
-            )
+        return
 
-        elif value in TRIPLE_VALUES:
-            await message.reply(
-                f"😔 Կներեք, {message.from_user.first_name}, ձեզ չընկավ 🎰։\n"
-                "🎁 Որպես մխիթարանք դուք ստացաք 🧸\n"
-                f"✉️ Խնդրում ենք կապ հաստատել @Aleksanyan0001"
-            )
     elif GAME_MODE == 2:
         if value == SEVEN_VALUE:  # 🎰 → NFT
-            available_nfts = get_available_nfts()
-            if not available_nfts:
-                await message.answer("❌ NFT չկա.")
-                return
-
-            kb = InlineKeyboardBuilder()
-            for nft_number, _ in available_nfts[:6]:
-                kb.button(text="NFT", callback_data=f"nft_{nft_number}:{message.from_user.id}")
-            kb.adjust(3, 3)
             save_win(message.from_user.id, "NFT")
             await message.reply(
                 build_nft_777_announcement(),
-                reply_markup=kb.as_markup(),
                 parse_mode=BOT_API_PARSE_MODE,
             )
-        elif value in TRIPLE_VALUES:
-            return
 
 @router.message(F.text.startswith("/add"))
 async def add_nft_handler(message: Message):
