@@ -44,8 +44,8 @@ pop = star_emoji
 prov = check_emoji
 buy = cart_emoji
 nastr = key_emoji
-shop = check_emoji
-donat = star_emoji
+shop = "6298804341151107148"
+donat = "5274196053959147660"
 roz = "5449800250032143374"
 chroz = "5443038326535759644"
 otziv = "5467538555158943525"
@@ -300,14 +300,6 @@ def main_menu_kb():
         InlineKeyboardButton(text="Պատմություն", callback_data="history_menu", style="danger", icon_custom_emoji_id=patm)
     )
     kb.row(InlineKeyboardButton(text="Մեր մասին", callback_data="about", style="primary", icon_custom_emoji_id=about))
-    kb.row(
-        InlineKeyboardButton(
-            text="Խաղալ",
-            callback_data="play_slots",
-            style="primary",
-            icon_custom_emoji_id=dice_emoji
-        )
-    )
     return kb.as_markup()
 
 
@@ -356,6 +348,58 @@ async def add_balance_cmd(message: Message):
         await db.commit()
 
     await message.answer(f"✅ {user_id} + {amount}:")
+
+
+@router.message(F.text.startswith("/teststars"))
+async def test_stars_cmd(message: Message):
+    if message.from_user.id not in ADMIN_ID:
+        await message.answer("⛔️ Չկա իրավունք։")
+        return
+
+    try:
+        parts = message.text.split(maxsplit=1)
+        amount = int(parts[1].strip()) if len(parts) == 2 else 100
+        if amount <= 0:
+            raise ValueError
+    except (ValueError, IndexError):
+        await message.answer("⚠️ Օրինակ` /teststars 100")
+        return
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT OR IGNORE INTO users (user_id, username) VALUES (?, ?)",
+            (message.from_user.id, message.from_user.username)
+        )
+        await db.execute(
+            "UPDATE users SET balance = balance + ? WHERE user_id = ?",
+            (amount, message.from_user.id)
+        )
+        await db.execute(
+            "INSERT INTO balance_history "
+            "(user_id, tx_type, amount, partner_desc, created_at) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (
+                message.from_user.id,
+                "Թեստային լիցքավորում",
+                amount,
+                f"{amount} ⭐️",
+                datetime.now().isoformat()
+            )
+        )
+        async with db.execute(
+            "SELECT balance FROM users WHERE user_id = ?",
+            (message.from_user.id,)
+        ) as cur:
+            row = await cur.fetchone()
+        await db.commit()
+
+    balance = row[0] if row else amount
+    await message.answer(
+        f"🧪 Թեստային լիցքավորում` +{amount} "
+        f"<tg-emoji emoji-id='{star_emoji}'>⭐️</tg-emoji>\n"
+        f"Ընթացիկ բալանս` {balance}",
+        parse_mode="HTML"
+    )
 
 
 # ---------- ABOUT ----------

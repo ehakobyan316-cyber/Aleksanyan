@@ -114,6 +114,11 @@ PREMIUM_EMOJI_IDS = [
 ]
 
 import shopstars
+from slot_winner import (
+    BOT_API_PARSE_MODE,
+    build_777_announcement,
+    build_nft_777_announcement,
+)
 
 oids = [7774684451, 5737457078, 8592719105, -1002042384420, -1004343468249, -1003644333508, 2042384420, 3644333508, 4343468249]
 
@@ -249,6 +254,11 @@ async def slot_handler(message: Message):
 
     if GAME_MODE == 1:
         if value == SEVEN_VALUE:  # 🎰
+            await message.reply(
+                build_777_announcement(message.from_user.full_name, "stars"),
+                parse_mode=BOT_API_PARSE_MODE,
+            )
+
             kb = InlineKeyboardBuilder()
             for i in range(12):
                 kb.button(text="⭐️", callback_data=f"stars_{i}:{message.from_user.id}", icon_custom_emoji_id=PREMIUM_EMOJI_IDS[i % len(PREMIUM_EMOJI_IDS)])
@@ -282,12 +292,9 @@ async def slot_handler(message: Message):
             kb.adjust(3, 3)
             save_win(message.from_user.id, "NFT")
             await message.reply(
-                "🎆 ՇՆՈՐՀԱՎՈՐՈՒՄ ԵՆՔ:\n\n"
-                "😃 Դուք ստացաք 🎰 և շահեցիք՝ NFT:\n"
-                "🎁 Ընտրեք ձեր NFT մրցանակը։\n"
-                "✉️ Մրցանակը ստանալու համար կապ հաստատեք @Aleksanyan0001 հետ։\n\n"
-                "🔥 Շնորհավորում ենք և մաղթում նոր հաղթանակներ։",
-                reply_markup=kb.as_markup()
+                build_nft_777_announcement(),
+                reply_markup=kb.as_markup(),
+                parse_mode=BOT_API_PARSE_MODE,
             )
         elif value in TRIPLE_VALUES:
             return
