@@ -1,4 +1,4 @@
-import asyncio
+ժimport asyncio
 from html import escape
 import logging
 import os
@@ -101,7 +101,9 @@ from aiohttp import web
 
 # --- ՆԱՇՏԿՈՒՄՆԵՐ (Settings) ---
 logging.basicConfig(level=logging.INFO)
-BOT_TOKEN = "8226041722:AAHciTQ_7AiSApJ-YTnHtDgroMJqqo0GUTg"
+BOT_TOKEN = os.environ.get("ALEKSANYAN_BOT_TOKEN")
+if not BOT_TOKEN:
+    raise RuntimeError("ALEKSANYAN_BOT_TOKEN environment variable is required")
 DB_PATH = "slots1.db"
 
 # Premium Telegram emoji IDs
@@ -253,6 +255,13 @@ async def slot_handler(message: Message):
         return
 
     value = message.dice.value
+    logging.info(
+        "Received slot dice in group: chat_id=%s user_id=%s value=%s game_mode=%s",
+        message.chat.id,
+        message.from_user.id,
+        value,
+        GAME_MODE,
+    )
     save_user(message.from_user.id, message.from_user.full_name)
 
     if GAME_MODE == 1:
