@@ -1,4 +1,4 @@
-ժimport asyncio
+import asyncio
 from html import escape
 import logging
 import os
