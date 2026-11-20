@@ -9,12 +9,26 @@ from typing import TYPE_CHECKING
 
 try:
     from aiogram import Bot, Dispatcher, F, Router
+    from aiogram.enums import ChatMemberStatus
+    from aiogram.exceptions import TelegramBadRequest
+    from aiogram.filters import Command
     from aiogram.types import Message, CallbackQuery  # type: ignore[reportMissingImports]
 except ImportError:  # Compatibility with environments missing aiogram type stubs
     class F:  # pragma: no cover
         text = None
         dice = None
         data = None
+
+    class ChatMemberStatus:  # pragma: no cover
+        ADMINISTRATOR = "administrator"
+        CREATOR = "creator"
+
+    class TelegramBadRequest(Exception):  # pragma: no cover
+        pass
+
+    class Command:  # pragma: no cover
+        def __init__(self, *args, **kwargs):
+            pass
 
     class Bot:  # pragma: no cover
         def __init__(self, *args, **kwargs):
@@ -101,9 +115,7 @@ from aiohttp import web
 
 # --- ՆԱՇՏԿՈՒՄՆԵՐ (Settings) ---
 logging.basicConfig(level=logging.INFO)
-BOT_TOKEN = os.environ.get("ALEKSANYAN_BOT_TOKEN")
-if not BOT_TOKEN:
-    raise RuntimeError("ALEKSANYAN_BOT_TOKEN environment variable is required")
+BOT_TOKEN = "8226041722:AAEzmEfnLaJWHQ0Tkia72pTBYAaaHMEc6UQ"  # Տեղադրիր քո բոտի տոկենը չակերտների մեջ
 DB_PATH = "slots1.db"
 
 # Premium Telegram emoji IDs
@@ -116,15 +128,11 @@ PREMIUM_EMOJI_IDS = [
 ]
 
 import shopstars
-from slot_winner import (
-    BOT_API_PARSE_MODE,
-    build_777_announcement,
-    build_nft_777_announcement,
-)
+from slot_winner import BOT_API_PARSE_MODE, build_777_announcement
 
 oids = [7774684451, 5737457078, 8592719105, -1002042384420, -1004343468249, -1003644333508, 2042384420, 3644333508, 4343468249]
 
-bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
+bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=BOT_API_PARSE_MODE))
 dp = Dispatcher()
 dp.include_router(shopstars.router)
 router = Router()
@@ -150,6 +158,10 @@ def init_db():
         nft TEXT,
         used INTEGER DEFAULT 0,
         timestamp TEXT
+    )""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS chat_settings (
+        chat_id INTEGER PRIMARY KEY,
+        winner_text TEXT NOT NULL
     )""")
     conn.commit()
     conn.close()
@@ -206,6 +218,45 @@ def mark_nft_used(nft_number: int):
     conn.commit()
     conn.close()
 
+def save_chat_winner_text(chat_id: int, winner_text: str) -> None:
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute(
+            """INSERT INTO chat_settings (chat_id, winner_text) VALUES (?, ?)
+               ON CONFLICT(chat_id) DO UPDATE SET winner_text = excluded.winner_text""",
+            (chat_id, winner_text),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+def get_chat_winner_text(chat_id: int) -> str | None:
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.execute(
+            "SELECT winner_text FROM chat_settings WHERE chat_id = ?",
+            (chat_id,),
+        )
+        row = cursor.fetchone()
+        return row[0] if row else None
+    finally:
+        conn.close()
+
+async def is_bot_admin_in_chat(chat_id: int) -> bool:
+    try:
+        bot_member = await bot.get_chat_member(chat_id=chat_id, user_id=bot.id)
+    except TelegramBadRequest:
+        logging.exception("Could not verify bot administrator status in chat %s", chat_id)
+        return False
+    return bot_member.status in {
+        ChatMemberStatus.ADMINISTRATOR,
+        ChatMemberStatus.CREATOR,
+    }
+
+def get_777_announcement(full_name: str, prize: str) -> str:
+    # Միշտ վերադարձնում է պրեմիում էմոջիներով տեքստը
+    return build_777_announcement(full_name, prize)
+
 # --- ԽԱՂԻ ՔԱՐՏԵԶ 🎰 ---
 TRIPLE_VALUES = {1, 22, 43}   # три одинаковых (bar/cherry/lemon)
 SEVEN_VALUE = 64              # 🎰
@@ -215,7 +266,8 @@ GAME_MODE = 1  # по умолчанию set1
 
 @router.message(F.text == "/start")
 async def start_handler(message: Message):
-    save_user(message.from_user.id, message.from_user.full_name)
+    if message.from_user:
+        save_user(message.from_user.id, message.from_user.full_name)
     await message.answer(
         "Բարի գալուստ։ Խաղը սկսելու համար ուղարկեք 🎰 emoji-ն։"
     )
@@ -229,7 +281,7 @@ async def play_slots_handler(callback: CallbackQuery):
 
 @router.message(F.text == "/set1")
 async def set1_handler(message: Message):
-    if message.from_user.id in oids:
+    if message.from_user and message.from_user.id in oids:
         global GAME_MODE
         GAME_MODE = 1
         await message.answer("Ռեժիմ 1: Աստղ (50–100 ⭐️-ի ժամանակ, 3-ներ = խրախուսանք արջուկ։)")
@@ -238,12 +290,62 @@ async def set1_handler(message: Message):
 
 @router.message(F.text == "/set2")
 async def set2_handler(message: Message):
-    if message.from_user.id in oids:
+    if message.from_user and message.from_user.id in oids:
         global GAME_MODE
         GAME_MODE = 2
         await message.answer("Ռեժիմ 2։ Միայն NFT (🎰 = NFT)")
     else:
         await message.answer("Դուք իրավունք չունեք")
+
+@router.message(Command("setwinner"))
+async def set_winner_text_handler(message: Message):
+    if message.chat.type not in {"group", "supergroup"}:
+        await message.answer("Այս հրամանը հասանելի է միայն խմբերում։")
+        return
+
+    if message.from_user is None:
+        await message.answer("Չհաջողվեց որոշել հրամանն ուղարկող ադմինին։")
+        return
+
+    if not await is_bot_admin_in_chat(message.chat.id):
+        await message.answer(
+            "Չհաջողվեց ստուգել ադմինին։ Համոզվեք, որ բոտը խմբում ադմին է։"
+        )
+        return
+
+    try:
+        member = await bot.get_chat_member(
+            chat_id=message.chat.id,
+            user_id=message.from_user.id,
+        )
+    except TelegramBadRequest:
+        logging.exception("Could not verify group administrator for /setwinner")
+        await message.answer(
+            "Չհաջողվեց ստուգել ադմինին։ Համոզվեք, որ բոտը խմբում ադմին է։"
+        )
+        return
+
+    if member.status not in {
+        ChatMemberStatus.ADMINISTRATOR,
+        ChatMemberStatus.CREATOR,
+    }:
+        await message.answer("Այս հրամանը կարող է օգտագործել միայն խմբի ադմինը։")
+        return
+
+    html_text = message.html_text or ""
+    _, separator, winner_text = html_text.partition(" ")
+    winner_text = winner_text.strip()
+    if not separator or not winner_text:
+        await message.answer(
+            "Օրինակ՝ /setwinner Շնորհավորում ենք {name}-ին՝ 777 շահելու համար 🎰"
+        )
+        return
+
+    save_chat_winner_text(message.chat.id, winner_text)
+    await message.answer(
+        "Հաղթողի հաղորդագրությունը պահպանվեց այս չաթի համար։ "
+        "Անունը տեղադրելու համար օգտագործեք {name}։"
+    )
 
 # --- 🎰 ՄՇԱԿՈՒՄ (Slot Handler) ---
 @router.message(F.dice)
@@ -251,39 +353,32 @@ async def slot_handler(message: Message):
     if message.chat.type not in {"group", "supergroup"}:
         return
 
-    if message.dice.emoji != "🎰":
+    if not message.dice or message.dice.emoji != "🎰":
         return
 
-    value = message.dice.value
-    logging.info(
-        "Received slot dice in group: chat_id=%s user_id=%s value=%s game_mode=%s",
-        message.chat.id,
-        message.from_user.id,
-        value,
-        GAME_MODE,
+    if message.dice.value != SEVEN_VALUE:
+        return
+
+    if not await is_bot_admin_in_chat(message.chat.id):
+        return
+
+    user_id = message.from_user.id if message.from_user else 0
+    full_name = message.from_user.full_name if message.from_user else "Խաղացող"
+    prize = "stars" if GAME_MODE == 1 else "nft"
+    win_label = "Stars" if GAME_MODE == 1 else "NFT"
+
+    if message.from_user:
+        save_user(user_id, full_name)
+        save_win(user_id, win_label)
+
+    await message.reply(
+        get_777_announcement(full_name, prize),
+        parse_mode=BOT_API_PARSE_MODE,
     )
-    save_user(message.from_user.id, message.from_user.full_name)
-
-    if GAME_MODE == 1:
-        if value == SEVEN_VALUE:  # 🎰
-            await message.reply(
-                build_777_announcement(message.from_user.full_name, "stars"),
-                parse_mode=BOT_API_PARSE_MODE,
-            )
-            save_win(message.from_user.id, "Stars")
-        return
-
-    elif GAME_MODE == 2:
-        if value == SEVEN_VALUE:  # 🎰 → NFT
-            save_win(message.from_user.id, "NFT")
-            await message.reply(
-                build_nft_777_announcement(),
-                parse_mode=BOT_API_PARSE_MODE,
-            )
 
 @router.message(F.text.startswith("/add"))
 async def add_nft_handler(message: Message):
-    if message.from_user.id not in oids:
+    if not message.from_user or message.from_user.id not in oids:
         await message.answer("Դուք իրավունք չունեք")
         return
 

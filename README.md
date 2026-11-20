@@ -25,5 +25,10 @@ $env:SHOPSTARS_BOT_TOKEN = "your-ShopStars-token"
 python shopstars.py
 ```
 
+In a group where the bot is an administrator, a group administrator can set
+that group's custom 777-win announcement with `/setwinner <text>`. Premium
+custom emoji in the command are preserved; `{name}` is replaced with the
+winner's name. The setting is stored separately for each group.
+
 Do not put bot tokens in source code or commit them. Tokens previously present in
 the source should be revoked and replaced through BotFather.
