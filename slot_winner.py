@@ -8,7 +8,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ChatMemberStatus, ParseMode
 from aiogram.filters import Command
 
-BOT_TOKEN = "8226041722:AAHciTQ_7AiSApJ-YTnHtDgroMJqqo0GUTg"
+BOT_TOKEN = "8996867611:AAG4zmTRRaQ3NcRsVqhOjfO3EecnV2gpFuk"
 DEFAULT_PRIZE = "stars"  # "stars" կամ "nft"
 SPIN_DELAY_SECONDS = 2.5
 
