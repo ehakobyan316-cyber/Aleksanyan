@@ -13,7 +13,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 logging.basicConfig(level=logging.INFO)
 
-BOT_TOKEN = "8996867611:AAFwVhOeguOMQwWw6VswjRTz3SUZB391y28"
+BOT_TOKEN = "9166376948:AAHAxKiM2WGBK2fxYfufcvJ6DX8b62b0DSY"
 
 BOT_API_PARSE_MODE = "HTML"
 SEVEN_VALUE = 64  # 🎰 777 արժեքը
@@ -261,3 +261,4 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
+
