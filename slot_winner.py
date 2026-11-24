@@ -13,7 +13,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 logging.basicConfig(level=logging.INFO)
 
-BOT_TOKEN = "9166376948:AAHAxKiM2WGBK2fxYfufcvJ6DX8b62b0DSY"
+BOT_TOKEN = "8996867611:AAHi3o9O1zipDGPeSwfiQfVjx2_HIAJCxCE"
 
 BOT_API_PARSE_MODE = "HTML"
 SEVEN_VALUE = 64  # 🎰 777 արժեքը
